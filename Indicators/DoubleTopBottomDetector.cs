@@ -310,43 +310,74 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void DrawDoubleTopPattern()
         {
-            // Draw connecting line between peaks
-            Draw.Line(this, "TopLine" + CurrentBar, true, firstPeakBar, firstPeak, 0, secondPeak, 
-                     DoubleTopColor, DashStyleHelper.Solid, LineThickness);
+            // Calculate RELATIVE bar positions (NinjaTrader uses 0 for current bar)
+            int firstPeakOffset = CurrentBar - firstPeakBar;
+            int secondPeakOffset = CurrentBar - secondPeakBar;
+            
+            // Draw connecting line between peaks WITH CORRECT OFFSETS
+            Draw.Line(this, "TopLine" + CurrentBar, true, 
+                    firstPeakOffset, firstPeak, 
+                    secondPeakOffset, secondPeak, 
+                    DoubleTopColor, DashStyleHelper.Solid, LineThickness);
             
             // Draw second peak marker
             Draw.Diamond(this, "SecondPeak" + CurrentBar, true, 0, secondPeak + (2 * TickSize), DoubleTopColor);
             Draw.Text(this, "Peak2" + CurrentBar, true, "P2", 0, secondPeak + (6 * TickSize), 0, 
-                     DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
+                    DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
             
-            // Find the middle trough point
+            // Find the middle trough point and convert to RELATIVE bar index
             int middleTroughBar = FindMiddleTroughBar();
+            int middleTroughOffset = CurrentBar - middleTroughBar;
             
-            // Draw the neckline
-            DrawDoubleTopNeckline(middleTroughBar);
+            // Draw the neckline WITH CORRECT OFFSET
+            Draw.Line(this, "NecklineTop" + CurrentBar, true, 
+                    middleTroughOffset, middleTrough, 
+                    0, middleTrough, 
+                    DoubleTopColor, DashStyleHelper.Dash, LineThickness);
+                    
+            // Draw neckline label at correct position
+            Draw.Text(this, "NeckTop" + CurrentBar, true, "NECKLINE", Math.Min(middleTroughOffset, RectangleWidth), 
+                    middleTrough - (4 * TickSize), 0, 
+                    DoubleTopColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
             
             // Draw entry signal
-            DrawDoubleTopEntrySignal();
+            Draw.ArrowDown(this, "EntryTop" + CurrentBar, true, 0, middleTrough + (10 * TickSize), DoubleTopColor);
+            Draw.Text(this, "EntrySellText" + CurrentBar, true, "SELL", 0, middleTrough + (15 * TickSize), 0, 
+                    Brushes.White, new SimpleFont("Arial", 10), TextAlignment.Center, DoubleTopColor, null, 0);
             
-            // Draw rectangle highlighting if enabled
+            // Draw rectangle with proper width
             if (HighlightPattern)
             {
-                DrawDoubleTopRectangle();
+                // Use maximum of offsets limited by RectangleWidth
+                int patternStartOffset = Math.Max(firstPeakOffset, secondPeakOffset);
+                int limitedOffset = Math.Min(patternStartOffset, RectangleWidth);
+                
+                Draw.Rectangle(this, "TopRect" + CurrentBar, true, 
+                            limitedOffset, middleTrough - (0.5 * TickSize), 
+                            0, Math.Max(firstPeak, secondPeak) + (TickSize), 
+                            DoubleTopColor, Brushes.Transparent, 10);
             }
         }
 
         private int FindMiddleTroughBar()
         {
-            int middleTroughBar = Math.Max(firstPeakBar - 10, 0);
-            for (int i = 0; i < 20; i++)
+            // This method should return the absolute bar index, not relative
+            int barOffset = 0;
+            double closestValue = double.MaxValue;
+            
+            // Search for the bar with the closest low to middleTrough
+            for (int i = Math.Max(0, firstPeakBar - CurrentBar); i <= Math.Min(CurrentBar, secondPeakBar - CurrentBar); i++)
             {
-                if (i < CurrentBar && Math.Abs(Low[i] - middleTrough) < TickSize)
+                double diff = Math.Abs(Low[i] - middleTrough);
+                if (diff < closestValue)
                 {
-                    middleTroughBar = i;
-                    break;
+                    closestValue = diff;
+                    barOffset = i;
                 }
             }
-            return middleTroughBar;
+            
+            // Convert from relative to absolute bar index
+            return CurrentBar - barOffset;
         }
 
         private void DrawDoubleTopNeckline(int middleTroughBar)
@@ -388,43 +419,74 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void DrawDoubleBottomPattern()
         {
-            // Draw connecting line between troughs
-            Draw.Line(this, "BottomLine" + CurrentBar, true, firstTroughBar, firstTrough, 0, secondTrough, 
-                     DoubleBottomColor, DashStyleHelper.Solid, LineThickness);
+            // Calculate RELATIVE bar positions
+            int firstTroughOffset = CurrentBar - firstTroughBar;
+            int secondTroughOffset = CurrentBar - secondTroughBar;
+            
+            // Draw connecting line between troughs WITH CORRECT OFFSETS
+            Draw.Line(this, "BottomLine" + CurrentBar, true, 
+                    firstTroughOffset, firstTrough, 
+                    secondTroughOffset, secondTrough, 
+                    DoubleBottomColor, DashStyleHelper.Solid, LineThickness);
             
             // Draw second trough marker
             Draw.Diamond(this, "SecondTrough" + CurrentBar, true, 0, secondTrough - (2 * TickSize), DoubleBottomColor);
             Draw.Text(this, "Trough2" + CurrentBar, true, "T2", 0, secondTrough - (6 * TickSize), 0, 
-                     DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
+                    DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
             
-            // Find the middle peak point
+            // Find the middle peak point and convert to RELATIVE bar index
             int middlePeakBar = FindMiddlePeakBar();
+            int middlePeakOffset = CurrentBar - middlePeakBar;
             
-            // Draw the neckline
-            DrawDoubleBottomNeckline(middlePeakBar);
+            // Draw the neckline WITH CORRECT OFFSET
+            Draw.Line(this, "NecklineBottom" + CurrentBar, true, 
+                    middlePeakOffset, middlePeak, 
+                    0, middlePeak, 
+                    DoubleBottomColor, DashStyleHelper.Dash, LineThickness);
+                    
+            // Draw neckline label at correct position
+            Draw.Text(this, "NeckBottom" + CurrentBar, true, "NECKLINE", Math.Min(middlePeakOffset, RectangleWidth), 
+                    middlePeak + (4 * TickSize), 0, 
+                    DoubleBottomColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
             
             // Draw entry signal
-            DrawDoubleBottomEntrySignal();
+            Draw.ArrowUp(this, "EntryBottom" + CurrentBar, true, 0, middlePeak - (10 * TickSize), DoubleBottomColor);
+            Draw.Text(this, "EntryBuyText" + CurrentBar, true, "BUY", 0, middlePeak - (15 * TickSize), 0, 
+                    Brushes.White, new SimpleFont("Arial", 10), TextAlignment.Center, DoubleBottomColor, null, 0);
             
-            // Draw rectangle highlighting if enabled
+            // Draw rectangle with proper width
             if (HighlightPattern)
             {
-                DrawDoubleBottomRectangle();
-            }
+                // Use maximum of offsets limited by RectangleWidth
+                int patternStartOffset = Math.Max(firstTroughOffset, secondTroughOffset);
+                int limitedOffset = Math.Min(patternStartOffset, RectangleWidth);
+                
+                Draw.Rectangle(this, "BottomRect" + CurrentBar, true, 
+                            limitedOffset, Math.Min(firstTrough, secondTrough) - (TickSize), 
+                            0, middlePeak + (0.5 * TickSize), 
+                            DoubleBottomColor, Brushes.Transparent, 10);
+            }          
         }
 
         private int FindMiddlePeakBar()
         {
-            int middlePeakBar = Math.Max(firstTroughBar - 10, 0);
-            for (int i = 0; i < 20; i++)
+           // This method should return the absolute bar index, not relative
+            int barOffset = 0;
+            double closestValue = double.MaxValue;
+            
+            // Search for the bar with the closest high to middlePeak
+            for (int i = Math.Max(0, firstTroughBar - CurrentBar); i <= Math.Min(CurrentBar, secondTroughBar - CurrentBar); i++)
             {
-                if (i < CurrentBar && Math.Abs(High[i] - middlePeak) < TickSize)
+                double diff = Math.Abs(High[i] - middlePeak);
+                if (diff < closestValue)
                 {
-                    middlePeakBar = i;
-                    break;
+                    closestValue = diff;
+                    barOffset = i;
                 }
             }
-            return middlePeakBar;
+            
+            // Convert from relative to absolute bar index
+            return CurrentBar - barOffset;
         }
 
         private void DrawDoubleBottomNeckline(int middlePeakBar)
