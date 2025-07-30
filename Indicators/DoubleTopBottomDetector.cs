@@ -172,7 +172,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // DOUBLE TOP DETECTION
             if (!lookingForSecondPeak)
             {
-                if (Math.Abs(currentHigh - localHigh) / localHigh < threshold && currentHigh > prevClose)
+                if (Math.Abs(currentHigh - localHigh) / localHigh < threshold)
                 {
                     firstPeak = currentHigh;
                     firstPeakBar = CurrentBar;
@@ -181,10 +181,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                     
                     if (ShowAnnotations)
                     {
-                        // More visible marker for first peak
                         Draw.Diamond(this, "FirstPeak" + CurrentBar, true, 0, firstPeak + (2 * TickSize), DoubleTopColor);
                         Draw.Text(this, "Peak1" + CurrentBar, true, "P1", 0, firstPeak + (6 * TickSize), 0, 
-                                 DoubleTopColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
+                                DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
                     }
                 }
             }
@@ -196,16 +195,15 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 
                 if (Math.Abs(currentHigh - firstPeak) / firstPeak < threshold && 
-                    CurrentBar > firstPeakBar + 3 &&
+                    CurrentBar > firstPeakBar + 2 &&
                     CurrentBar < firstPeakBar + LookbackPeriod)
                 {
                     secondPeak = currentHigh;
                     secondPeakBar = CurrentBar;
                     
-                    if (secondPeak <= firstPeak &&
-                        middleTrough < Math.Min(firstPeak, secondPeak) - (Math.Min(firstPeak, secondPeak) * 0.003) &&
-                        currentClose < prevClose &&
-                        Volume[0] > SMA(Volume, 10)[0])
+                    // MODIFIED: Less strict requirements for pattern confirmation
+                    if (secondPeak <= firstPeak * 1.001 && // Allow slight higher second peak
+                        middleTrough < Math.Min(firstPeak, secondPeak) - (Math.Min(firstPeak, secondPeak) * 0.001)) // Reduced retracement
                     {
                         doubleTopDetected = true;
                         lookingForSecondPeak = false;
@@ -214,38 +212,44 @@ namespace NinjaTrader.NinjaScript.Indicators
                         {
                             // Draw pattern with thicker, more visible lines
                             Draw.Line(this, "TopLine" + CurrentBar, true, firstPeakBar, firstPeak, 0, secondPeak, 
-                                     DoubleTopColor, DashStyleHelper.Solid, LineThickness);
+                                    DoubleTopColor, DashStyleHelper.Solid, LineThickness);
                             
-                            // More visible marker for second peak
                             Draw.Diamond(this, "SecondPeak" + CurrentBar, true, 0, secondPeak + (2 * TickSize), DoubleTopColor);
                             Draw.Text(this, "Peak2" + CurrentBar, true, "P2", 0, secondPeak + (6 * TickSize), 0, 
-                                     DoubleTopColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
+                                    DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
                             
-                            // Find the middle trough point
-                            int middleTroughBar = 0;
-                            for (int i = 0; i < (firstPeakBar - CurrentBar); i++)
+                            // Draw neckline with thick, dashed line
+                            int middleTroughBar = Math.Max(firstPeakBar - 10, 0);
+                            for (int i = 0; i < 20; i++)
                             {
-                                if (Math.Abs(Low[i] - middleTrough) < 0.001)
+                                if (i < CurrentBar && Math.Abs(Low[i] - middleTrough) < TickSize)
                                 {
                                     middleTroughBar = i;
                                     break;
                                 }
                             }
                             
-                            // Draw neckline with thick, dashed line
                             Draw.Line(this, "NecklineTop" + CurrentBar, true, 
-                                     middleTroughBar, middleTrough, 
-                                     0, middleTrough, 
-                                     DoubleTopColor, DashStyleHelper.Dash, LineThickness);
-                                     
-                            // Label the neckline
-                            Draw.Text(this, "NeckTop" + CurrentBar, true, "NECKLINE", Math.Max(middleTroughBar - 5, 0), middleTrough - (4 * TickSize), 0, 
-                                     DoubleTopColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
+                                    middleTroughBar, middleTrough, 
+                                    0, middleTrough, 
+                                    DoubleTopColor, DashStyleHelper.Dash, LineThickness);
+                                    
+                            Draw.Text(this, "NeckTop" + CurrentBar, true, "NECKLINE", Math.Max(middleTroughBar - 3, 0), 
+                                    middleTrough - (4 * TickSize), 0, 
+                                    DoubleTopColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
                             
-                            // Draw entry arrow
                             Draw.ArrowDown(this, "EntryTop" + CurrentBar, true, 0, middleTrough + (10 * TickSize), DoubleTopColor);
                             Draw.Text(this, "EntrySellText" + CurrentBar, true, "SELL", 0, middleTrough + (15 * TickSize), 0, 
-                                     Brushes.White, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, DoubleTopColor, null, 0);
+                                    Brushes.White, new SimpleFont("Arial", 10), TextAlignment.Center, DoubleTopColor, null, 0);
+                            
+                            // Add rectangle highlighting
+                            if (HighlightPattern)
+                            {
+                                Draw.Rectangle(this, "TopRect" + CurrentBar, true, 
+                                            firstPeakBar, middleTrough - (0.5 * TickSize), 
+                                            0, Math.Max(firstPeak, secondPeak) + (TickSize), 
+                                            DoubleTopColor, Brushes.Transparent, 10);
+                            }
                         }
                     }
                 }
@@ -256,10 +260,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
             }
             
-            // DOUBLE BOTTOM DETECTION
+            // DOUBLE BOTTOM DETECTION - Similar modifications
             if (!lookingForSecondTrough)
             {
-                if (Math.Abs(currentLow - localLow) / localLow < threshold && currentLow < prevClose)
+                if (Math.Abs(currentLow - localLow) / localLow < threshold)
                 {
                     firstTrough = currentLow;
                     firstTroughBar = CurrentBar;
@@ -268,10 +272,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                     
                     if (ShowAnnotations)
                     {
-                        // More visible marker for first trough
                         Draw.Diamond(this, "FirstTrough" + CurrentBar, true, 0, firstTrough - (2 * TickSize), DoubleBottomColor);
                         Draw.Text(this, "Trough1" + CurrentBar, true, "T1", 0, firstTrough - (6 * TickSize), 0, 
-                                 DoubleBottomColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
+                                DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
                     }
                 }
             }
@@ -283,56 +286,61 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 
                 if (Math.Abs(currentLow - firstTrough) / firstTrough < threshold && 
-                    CurrentBar > firstTroughBar + 3 &&
+                    CurrentBar > firstTroughBar + 2 &&
                     CurrentBar < firstTroughBar + LookbackPeriod)
                 {
                     secondTrough = currentLow;
                     secondTroughBar = CurrentBar;
                     
-                    if (secondTrough >= firstTrough &&
-                        middlePeak > Math.Max(firstTrough, secondTrough) + (Math.Max(firstTrough, secondTrough) * 0.003) &&
-                        currentClose > prevClose &&
-                        Volume[0] > SMA(Volume, 10)[0])
+                    // MODIFIED: Less strict requirements for pattern confirmation
+                    if (secondTrough >= firstTrough * 0.999 && // Allow slightly lower second trough
+                        middlePeak > Math.Max(firstTrough, secondTrough) + (Math.Max(firstTrough, secondTrough) * 0.001)) // Reduced retracement
                     {
                         doubleBottomDetected = true;
                         lookingForSecondTrough = false;
                         
                         if (ShowAnnotations)
                         {
-                            // Draw pattern with thicker, more visible lines
+                            // Similar drawing code for double bottom
                             Draw.Line(this, "BottomLine" + CurrentBar, true, firstTroughBar, firstTrough, 0, secondTrough, 
-                                     DoubleBottomColor, DashStyleHelper.Solid, LineThickness);
+                                    DoubleBottomColor, DashStyleHelper.Solid, LineThickness);
                             
-                            // More visible marker for second trough
                             Draw.Diamond(this, "SecondTrough" + CurrentBar, true, 0, secondTrough - (2 * TickSize), DoubleBottomColor);
                             Draw.Text(this, "Trough2" + CurrentBar, true, "T2", 0, secondTrough - (6 * TickSize), 0, 
-                                     DoubleBottomColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
+                                    DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 0);
                             
-                            // Find the middle peak point
-                            int middlePeakBar = 0;
-                            for (int i = 0; i < (firstTroughBar - CurrentBar); i++)
+                            // Draw neckline with thick, dashed line
+                            int middlePeakBar = Math.Max(firstTroughBar - 10, 0);
+                            for (int i = 0; i < 20; i++)
                             {
-                                if (Math.Abs(High[i] - middlePeak) < 0.001)
+                                if (i < CurrentBar && Math.Abs(High[i] - middlePeak) < TickSize)
                                 {
                                     middlePeakBar = i;
                                     break;
                                 }
                             }
                             
-                            // Draw neckline with thick, dashed line
                             Draw.Line(this, "NecklineBottom" + CurrentBar, true, 
-                                     middlePeakBar, middlePeak, 
-                                     0, middlePeak, 
-                                     DoubleBottomColor, DashStyleHelper.Dash, LineThickness);
-                                     
-                            // Label the neckline
-                            Draw.Text(this, "NeckBottom" + CurrentBar, true, "NECKLINE", Math.Max(middlePeakBar - 5, 0), middlePeak + (4 * TickSize), 0, 
-                                     DoubleBottomColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
+                                    middlePeakBar, middlePeak, 
+                                    0, middlePeak, 
+                                    DoubleBottomColor, DashStyleHelper.Dash, LineThickness);
+                                    
+                            Draw.Text(this, "NeckBottom" + CurrentBar, true, "NECKLINE", Math.Max(middlePeakBar - 3, 0), 
+                                    middlePeak + (4 * TickSize), 0, 
+                                    DoubleBottomColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
                             
-                            // Draw entry arrow
                             Draw.ArrowUp(this, "EntryBottom" + CurrentBar, true, 0, middlePeak - (10 * TickSize), DoubleBottomColor);
                             Draw.Text(this, "EntryBuyText" + CurrentBar, true, "BUY", 0, middlePeak - (15 * TickSize), 0, 
-                                     Brushes.White, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, DoubleBottomColor, null, 0);
+                                    Brushes.White, new SimpleFont("Arial", 10), TextAlignment.Center, DoubleBottomColor, null, 0);
+                            
+                            // Add rectangle highlighting
+                            if (HighlightPattern)
+                            {
+                                Draw.Rectangle(this, "BottomRect" + CurrentBar, true, 
+                                            firstTroughBar, Math.Min(firstTrough, secondTrough) - (TickSize), 
+                                            0, middlePeak + (0.5 * TickSize), 
+                                            DoubleBottomColor, Brushes.Transparent, 10);
+                            }
                         }
                     }
                 }
