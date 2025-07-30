@@ -21,40 +21,33 @@ using NinjaTrader.Core.FloatingPoint;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-//This namespace holds Indicators in this folder and is required. Do not change it.
 namespace NinjaTrader.NinjaScript.Indicators
 {
     public class DoubleTopBottomDetector : Indicator
     {
-        #region Variables
-        // Pattern detection parameters
-        private int lookbackPeriod = 20;            // Lookback period for pattern detection
-        private double thresholdPercent = 0.15;     // Threshold for similarity (0.15%)
-        private double threshold;                   // Calculated threshold (decimal)
+        private int lookbackPeriod = 20;
+        private double thresholdPercent = 0.15;
+        private double threshold;
         
-        // Pattern detection variables
-        private double firstPeak = 0;               // First peak for double top
-        private double secondPeak = 0;              // Second peak for double top
-        private double firstTrough = 0;             // First trough for double bottom
-        private double secondTrough = 0;            // Second trough for double bottom
-        private double middleTrough = 0;            // Middle trough for double top
-        private double middlePeak = 0;              // Middle peak for double bottom
-        private int firstPeakBar = 0;               // Bar index of first peak
-        private int secondPeakBar = 0;              // Bar index of second peak
-        private int firstTroughBar = 0;             // Bar index of first trough
-        private int secondTroughBar = 0;            // Bar index of second trough
+        private double firstPeak = 0;
+        private double secondPeak = 0;
+        private double firstTrough = 0;
+        private double secondTrough = 0;
+        private double middleTrough = 0;
+        private double middlePeak = 0;
+        private int firstPeakBar = 0;
+        private int secondPeakBar = 0;
+        private int firstTroughBar = 0;
+        private int secondTroughBar = 0;
         
-        // Pattern state tracking
-        private bool lookingForSecondPeak = false;   // Flag for finding second peak
-        private bool lookingForSecondTrough = false; // Flag for finding second trough
-        private bool doubleTopDetected = false;      // Flag for double top pattern
-        private bool doubleBottomDetected = false;   // Flag for double bottom pattern
+        private bool lookingForSecondPeak = false;
+        private bool lookingForSecondTrough = false;
+        private bool doubleTopDetected = false;
+        private bool doubleBottomDetected = false;
         
-        // Plotting
-        private bool showAnnotations = true;         // Flag to show text annotations
-        private bool alertOnDetection = true;        // Flag to alert on detection
-        private int arrowSize = 12;                  // Size of the arrows
-        #endregion
+        private bool showAnnotations = true;
+        private bool alertOnDetection = true;
+        private int arrowSize = 12;
         
         protected override void OnStateChange()
         {
@@ -71,16 +64,17 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PaintPriceMarkers = true;
                 ScaleJustification = NinjaTrader.Gui.Chart.ScaleJustification.Right;
                 
-                // Indicator parameters
                 LookbackPeriod = 20;
                 ThresholdPercent = 0.15;
                 ShowAnnotations = true;
                 AlertOnDetection = true;
                 ArrowSize = 12;
                 
-                // Colors
                 DoubleTopColor = Brushes.Red;
                 DoubleBottomColor = Brushes.Green;
+                
+                // Additional modern NT8 settings
+                BarsRequiredToPlot = 20;
             }
             else if (State == State.Configure)
             {
@@ -96,7 +90,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         protected override void OnBarUpdate()
         {
             // Wait for enough bars
-            if (CurrentBar < lookbackPeriod)
+            if (CurrentBar < LookbackPeriod)
                 return;
                 
             // Reset plot values
@@ -109,31 +103,37 @@ namespace NinjaTrader.NinjaScript.Indicators
             // Display detected patterns
             if (doubleTopDetected)
             {
-                Values[0][0] = High[0] + (3 * TickSize);  // Position arrow above the bar
+                Values[0][0] = High[0] + (3 * TickSize);
                 
-                if (showAnnotations)
+                if (ShowAnnotations)
                 {
-                    Draw.Text(this, "TopText" + CurrentBar, "Double Top", 0, High[0] + (6 * TickSize), 0, DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 1);
+                    // FIXED: Using correct overload with isAutoScale parameter
+                    Draw.Text(this, "TopText" + CurrentBar, true, "Double Top", 0, High[0] + (6 * TickSize), 0, 
+                             DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 1);
                 }
                 
-                if (alertOnDetection)
+                if (AlertOnDetection)
                 {
-                    Alert("DoubleTopAlert" + CurrentBar, Priority.Medium, "Double Top Detected", NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert1.wav", 10, Brushes.Red, Brushes.White);
+                    Alert("DoubleTopAlert" + CurrentBar, Priority.Medium, "Double Top Detected", 
+                         NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert1.wav", 10, DoubleTopColor, Brushes.White);
                 }
             }
             
             if (doubleBottomDetected)
             {
-                Values[1][0] = Low[0] - (3 * TickSize);  // Position arrow below the bar
+                Values[1][0] = Low[0] - (3 * TickSize);
                 
-                if (showAnnotations)
+                if (ShowAnnotations)
                 {
-                    Draw.Text(this, "BottomText" + CurrentBar, "Double Bottom", 0, Low[0] - (6 * TickSize), 0, DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 1);
+                    // FIXED: Using correct overload with isAutoScale parameter
+                    Draw.Text(this, "BottomText" + CurrentBar, true, "Double Bottom", 0, Low[0] - (6 * TickSize), 0, 
+                             DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 1);
                 }
                 
-                if (alertOnDetection)
+                if (AlertOnDetection)
                 {
-                    Alert("DoubleBottomAlert" + CurrentBar, Priority.Medium, "Double Bottom Detected", NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert2.wav", 10, Brushes.Green, Brushes.White);
+                    Alert("DoubleBottomAlert" + CurrentBar, Priority.Medium, "Double Bottom Detected", 
+                         NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert2.wav", 10, DoubleBottomColor, Brushes.White);
                 }
             }
         }
@@ -151,61 +151,52 @@ namespace NinjaTrader.NinjaScript.Indicators
             double prevClose = Close[1];
             
             // Find local high and low
-            double localHigh = MAX(High, lookbackPeriod)[0];
-            double localLow = MIN(Low, lookbackPeriod)[0];
+            double localHigh = MAX(High, LookbackPeriod)[0];
+            double localLow = MIN(Low, LookbackPeriod)[0];
             
             // DOUBLE TOP DETECTION
-            // If we're not looking for a second peak yet
             if (!lookingForSecondPeak)
             {
-                // Check if current bar made a significant high
                 if (Math.Abs(currentHigh - localHigh) / localHigh < threshold && currentHigh > prevClose)
                 {
-                    // Potential first peak found
                     firstPeak = currentHigh;
                     firstPeakBar = CurrentBar;
                     lookingForSecondPeak = true;
                     middleTrough = double.MaxValue;
                     
-                    if (showAnnotations)
+                    if (ShowAnnotations)
                     {
                         Draw.Dot(this, "FirstPeak" + CurrentBar, false, 0, firstPeak, DoubleTopColor);
                     }
                 }
             }
-            // If we're looking for a second peak
             else
             {
-                // Update middle trough if needed
                 if (currentLow < middleTrough)
                 {
                     middleTrough = currentLow;
                 }
                 
-                // Check if we've found a second peak (near first peak level)
                 if (Math.Abs(currentHigh - firstPeak) / firstPeak < threshold && 
-                    CurrentBar > firstPeakBar + 3 &&  // At least 3 bars after first peak
-                    CurrentBar < firstPeakBar + lookbackPeriod) // Within lookback window
+                    CurrentBar > firstPeakBar + 3 &&
+                    CurrentBar < firstPeakBar + LookbackPeriod)
                 {
                     secondPeak = currentHigh;
                     secondPeakBar = CurrentBar;
                     
-                    // Validate double top pattern
-                    if (secondPeak <= firstPeak && // Second peak failed to exceed first
-                        middleTrough < Math.Min(firstPeak, secondPeak) - (Math.Min(firstPeak, secondPeak) * 0.003) && // Significant middle trough
-                        currentClose < prevClose && // Price starting to decline
-                        Volume[0] > SMA(Volume, 10)[0]) // Higher than average volume
+                    if (secondPeak <= firstPeak &&
+                        middleTrough < Math.Min(firstPeak, secondPeak) - (Math.Min(firstPeak, secondPeak) * 0.003) &&
+                        currentClose < prevClose &&
+                        Volume[0] > SMA(Volume, 10)[0])
                     {
                         doubleTopDetected = true;
-                        lookingForSecondPeak = false; // Reset flag
+                        lookingForSecondPeak = false;
                         
-                        if (showAnnotations)
+                        if (ShowAnnotations)
                         {
-                            // Draw pattern visualization
-                            Draw.Line(this, "TopLine" + CurrentBar, false, firstPeakBar, firstPeak, secondPeakBar, secondPeak, DoubleTopColor, DashStyleHelper.Solid, 2);
+                            Draw.Line(this, "TopLine" + CurrentBar, false, firstPeakBar, firstPeak, 0, secondPeak, DoubleTopColor, DashStyleHelper.Solid, 2);
                             Draw.Dot(this, "SecondPeak" + CurrentBar, false, 0, secondPeak, DoubleTopColor);
                             
-                            // Draw neckline
                             int middleTroughBar = firstPeakBar;
                             for (int i = firstPeakBar; i <= secondPeakBar; i++)
                             {
@@ -224,65 +215,55 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
                 
-                // Reset if we've gone too far without finding a match
-                if (CurrentBar > firstPeakBar + lookbackPeriod)
+                if (CurrentBar > firstPeakBar + LookbackPeriod)
                 {
                     lookingForSecondPeak = false;
                 }
             }
             
             // DOUBLE BOTTOM DETECTION
-            // If we're not looking for a second trough yet
             if (!lookingForSecondTrough)
             {
-                // Check if current bar made a significant low
                 if (Math.Abs(currentLow - localLow) / localLow < threshold && currentLow < prevClose)
                 {
-                    // Potential first trough found
                     firstTrough = currentLow;
                     firstTroughBar = CurrentBar;
                     lookingForSecondTrough = true;
                     middlePeak = double.MinValue;
                     
-                    if (showAnnotations)
+                    if (ShowAnnotations)
                     {
                         Draw.Dot(this, "FirstTrough" + CurrentBar, false, 0, firstTrough, DoubleBottomColor);
                     }
                 }
             }
-            // If we're looking for a second trough
             else
             {
-                // Update middle peak if needed
                 if (currentHigh > middlePeak)
                 {
                     middlePeak = currentHigh;
                 }
                 
-                // Check if we've found a second trough (near first trough level)
                 if (Math.Abs(currentLow - firstTrough) / firstTrough < threshold && 
-                    CurrentBar > firstTroughBar + 3 &&  // At least 3 bars after first trough
-                    CurrentBar < firstTroughBar + lookbackPeriod) // Within lookback window
+                    CurrentBar > firstTroughBar + 3 &&
+                    CurrentBar < firstTroughBar + LookbackPeriod)
                 {
                     secondTrough = currentLow;
                     secondTroughBar = CurrentBar;
                     
-                    // Validate double bottom pattern
-                    if (secondTrough >= firstTrough && // Second trough held above first
-                        middlePeak > Math.Max(firstTrough, secondTrough) + (Math.Max(firstTrough, secondTrough) * 0.003) && // Significant middle peak
-                        currentClose > prevClose && // Price starting to rise
-                        Volume[0] > SMA(Volume, 10)[0]) // Higher than average volume
+                    if (secondTrough >= firstTrough &&
+                        middlePeak > Math.Max(firstTrough, secondTrough) + (Math.Max(firstTrough, secondTrough) * 0.003) &&
+                        currentClose > prevClose &&
+                        Volume[0] > SMA(Volume, 10)[0])
                     {
                         doubleBottomDetected = true;
-                        lookingForSecondTrough = false; // Reset flag
+                        lookingForSecondTrough = false;
                         
-                        if (showAnnotations)
+                        if (ShowAnnotations)
                         {
-                            // Draw pattern visualization
-                            Draw.Line(this, "BottomLine" + CurrentBar, false, firstTroughBar, firstTrough, secondTroughBar, secondTrough, DoubleBottomColor, DashStyleHelper.Solid, 2);
+                            Draw.Line(this, "BottomLine" + CurrentBar, false, firstTroughBar, firstTrough, 0, secondTrough, DoubleBottomColor, DashStyleHelper.Solid, 2);
                             Draw.Dot(this, "SecondTrough" + CurrentBar, false, 0, secondTrough, DoubleBottomColor);
                             
-                            // Draw neckline
                             int middlePeakBar = firstTroughBar;
                             for (int i = firstTroughBar; i <= secondTroughBar; i++)
                             {
@@ -301,8 +282,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
                 
-                // Reset if we've gone too far without finding a match
-                if (CurrentBar > firstTroughBar + lookbackPeriod)
+                if (CurrentBar > firstTroughBar + LookbackPeriod)
                 {
                     lookingForSecondTrough = false;
                 }
