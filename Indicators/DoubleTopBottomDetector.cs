@@ -23,7 +23,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    public class DoubleTopBottomDetector : Indicator
+    public class EnhancedDoubleTopBottomDetector : Indicator
     {
         private int lookbackPeriod = 20;
         private double thresholdPercent = 0.15;
@@ -47,14 +47,16 @@ namespace NinjaTrader.NinjaScript.Indicators
         
         private bool showAnnotations = true;
         private bool alertOnDetection = true;
-        private int arrowSize = 12;
+        private int arrowSize = 14;
+        private bool highlightPattern = true;
+        private int lineThickness = 3;
         
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
             {
-                Description = @"Detects Double Top and Double Bottom Patterns";
-                Name = "DoubleTopBottomDetector";
+                Description = @"Enhanced version of Double Top/Bottom Pattern Detector with improved visibility";
+                Name = "EnhancedDoubleTopBottomDetector";
                 Calculate = Calculate.OnBarClose;
                 IsOverlay = true;
                 DisplayInDataBox = true;
@@ -68,89 +70,102 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ThresholdPercent = 0.15;
                 ShowAnnotations = true;
                 AlertOnDetection = true;
-                ArrowSize = 12;
+                ArrowSize = 14;
+                HighlightPattern = true;
+                LineThickness = 3;
                 
                 DoubleTopColor = Brushes.Red;
                 DoubleBottomColor = Brushes.Green;
                 
-                // Additional modern NT8 settings
                 BarsRequiredToPlot = 20;
             }
             else if (State == State.Configure)
             {
-                // Calculate threshold in decimal
                 threshold = ThresholdPercent / 100.0;
                 
-                // Add plots
-                AddPlot(new Stroke(DoubleTopColor, 2), PlotStyle.TriangleDown, "DoubleTop");
-                AddPlot(new Stroke(DoubleBottomColor, 2), PlotStyle.TriangleUp, "DoubleBottom");
+                // Add plots with larger size for better visibility
+                AddPlot(new Stroke(DoubleTopColor, LineThickness), PlotStyle.TriangleDown, "DoubleTop");
+                AddPlot(new Stroke(DoubleBottomColor, LineThickness), PlotStyle.TriangleUp, "DoubleBottom");
             }
         }
 
         protected override void OnBarUpdate()
         {
-            // Wait for enough bars
             if (CurrentBar < LookbackPeriod)
                 return;
                 
-            // Reset plot values
-            Values[0][0] = double.NaN;  // Double Top
-            Values[1][0] = double.NaN;  // Double Bottom
+            Values[0][0] = double.NaN;
+            Values[1][0] = double.NaN;
             
-            // Pattern detection logic
             DetectDoublePatterns();
             
-            // Display detected patterns
             if (doubleTopDetected)
             {
-                Values[0][0] = High[0] + (3 * TickSize);
+                // Make arrow larger and position it more prominently
+                Values[0][0] = High[0] + (5 * TickSize);
                 
                 if (ShowAnnotations)
                 {
-                    // FIXED: Using correct overload with isAutoScale parameter
-                    Draw.Text(this, "TopText" + CurrentBar, true, "Double Top", 0, High[0] + (6 * TickSize), 0, 
-                             DoubleTopColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 1);
+                    // Larger, more visible text with background
+                    Draw.Text(this, "TopText" + CurrentBar, true, "DOUBLE TOP", 0, High[0] + (10 * TickSize), 0, 
+                             Brushes.White, new SimpleFont("Arial", 12, FontWeight.Bold), TextAlignment.Center, DoubleTopColor, Brushes.Red, 80);
+                             
+                    // Draw a rectangle highlighting the pattern area
+                    if (HighlightPattern)
+                    {
+                        Draw.Rectangle(this, "TopRect" + CurrentBar, true, 
+                                      firstPeakBar, Math.Min(firstPeak, secondPeak) - (Math.Min(firstPeak, secondPeak) * 0.002), 
+                                      0, Math.Max(firstPeak, secondPeak) + (Math.Max(firstPeak, secondPeak) * 0.002), 
+                                      DoubleTopColor, Brushes.Transparent, 15);
+                    }
                 }
                 
                 if (AlertOnDetection)
                 {
-                    Alert("DoubleTopAlert" + CurrentBar, Priority.Medium, "Double Top Detected", 
-                         NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert1.wav", 10, DoubleTopColor, Brushes.White);
+                    Alert("DoubleTopAlert" + CurrentBar, Priority.High, "Double Top Detected", 
+                         NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert1.wav", 15, DoubleTopColor, Brushes.White);
                 }
             }
             
             if (doubleBottomDetected)
             {
-                Values[1][0] = Low[0] - (3 * TickSize);
+                // Make arrow larger and position it more prominently
+                Values[1][0] = Low[0] - (5 * TickSize);
                 
                 if (ShowAnnotations)
                 {
-                    // FIXED: Using correct overload with isAutoScale parameter
-                    Draw.Text(this, "BottomText" + CurrentBar, true, "Double Bottom", 0, Low[0] - (6 * TickSize), 0, 
-                             DoubleBottomColor, new SimpleFont("Arial", 10), TextAlignment.Center, null, null, 1);
+                    // Larger, more visible text with background
+                    Draw.Text(this, "BottomText" + CurrentBar, true, "DOUBLE BOTTOM", 0, Low[0] - (10 * TickSize), 0, 
+                             Brushes.White, new SimpleFont("Arial", 12, FontWeight.Bold), TextAlignment.Center, DoubleBottomColor, Brushes.Green, 80);
+                             
+                    // Draw a rectangle highlighting the pattern area
+                    if (HighlightPattern)
+                    {
+                        Draw.Rectangle(this, "BottomRect" + CurrentBar, true, 
+                                      firstTroughBar, Math.Min(firstTrough, secondTrough) - (Math.Min(firstTrough, secondTrough) * 0.002), 
+                                      0, Math.Max(firstTrough, secondTrough) + (Math.Max(firstTrough, secondTrough) * 0.002), 
+                                      DoubleBottomColor, Brushes.Transparent, 15);
+                    }
                 }
                 
                 if (AlertOnDetection)
                 {
-                    Alert("DoubleBottomAlert" + CurrentBar, Priority.Medium, "Double Bottom Detected", 
-                         NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert2.wav", 10, DoubleBottomColor, Brushes.White);
+                    Alert("DoubleBottomAlert" + CurrentBar, Priority.High, "Double Bottom Detected", 
+                         NinjaTrader.Core.Globals.InstallDir + @"\sounds\Alert2.wav", 15, DoubleBottomColor, Brushes.White);
                 }
             }
         }
         
         private void DetectDoublePatterns()
         {
-            // Reset pattern flags
             doubleTopDetected = false;
             doubleBottomDetected = false;
             
-            // Get current high and low
             double currentHigh = High[0];
             double currentLow = Low[0];
             double currentClose = Close[0];
             double prevClose = Close[1];
             
-            // Find local high and low
             double localHigh = MAX(High, LookbackPeriod)[0];
             double localLow = MIN(Low, LookbackPeriod)[0];
             
@@ -166,7 +181,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                     
                     if (ShowAnnotations)
                     {
-                        Draw.Dot(this, "FirstPeak" + CurrentBar, false, 0, firstPeak, DoubleTopColor);
+                        // More visible marker for first peak
+                        Draw.Diamond(this, "FirstPeak" + CurrentBar, true, 0, firstPeak + (2 * TickSize), DoubleTopColor);
+                        Draw.Text(this, "Peak1" + CurrentBar, true, "P1", 0, firstPeak + (6 * TickSize), 0, 
+                                 DoubleTopColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
                     }
                 }
             }
@@ -194,23 +212,40 @@ namespace NinjaTrader.NinjaScript.Indicators
                         
                         if (ShowAnnotations)
                         {
-                            Draw.Line(this, "TopLine" + CurrentBar, false, firstPeakBar, firstPeak, 0, secondPeak, DoubleTopColor, DashStyleHelper.Solid, 2);
-                            Draw.Dot(this, "SecondPeak" + CurrentBar, false, 0, secondPeak, DoubleTopColor);
+                            // Draw pattern with thicker, more visible lines
+                            Draw.Line(this, "TopLine" + CurrentBar, true, firstPeakBar, firstPeak, 0, secondPeak, 
+                                     DoubleTopColor, DashStyleHelper.Solid, LineThickness);
                             
-                            int middleTroughBar = firstPeakBar;
-                            for (int i = firstPeakBar; i <= secondPeakBar; i++)
+                            // More visible marker for second peak
+                            Draw.Diamond(this, "SecondPeak" + CurrentBar, true, 0, secondPeak + (2 * TickSize), DoubleTopColor);
+                            Draw.Text(this, "Peak2" + CurrentBar, true, "P2", 0, secondPeak + (6 * TickSize), 0, 
+                                     DoubleTopColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
+                            
+                            // Find the middle trough point
+                            int middleTroughBar = 0;
+                            for (int i = 0; i < (firstPeakBar - CurrentBar); i++)
                             {
-                                if (Low[CurrentBar - i] <= middleTrough)
+                                if (Math.Abs(Low[i] - middleTrough) < 0.001)
                                 {
                                     middleTroughBar = i;
                                     break;
                                 }
                             }
                             
-                            Draw.Line(this, "NecklineTop" + CurrentBar, false, 
-                                     CurrentBar - middleTroughBar, middleTrough, 
+                            // Draw neckline with thick, dashed line
+                            Draw.Line(this, "NecklineTop" + CurrentBar, true, 
+                                     middleTroughBar, middleTrough, 
                                      0, middleTrough, 
-                                     DoubleTopColor, DashStyleHelper.Dash, 1);
+                                     DoubleTopColor, DashStyleHelper.Dash, LineThickness);
+                                     
+                            // Label the neckline
+                            Draw.Text(this, "NeckTop" + CurrentBar, true, "NECKLINE", Math.Max(middleTroughBar - 5, 0), middleTrough - (4 * TickSize), 0, 
+                                     DoubleTopColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
+                            
+                            // Draw entry arrow
+                            Draw.ArrowDown(this, "EntryTop" + CurrentBar, true, 0, middleTrough + (10 * TickSize), DoubleTopColor);
+                            Draw.Text(this, "EntrySellText" + CurrentBar, true, "SELL", 0, middleTrough + (15 * TickSize), 0, 
+                                     Brushes.White, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, DoubleTopColor, null, 0);
                         }
                     }
                 }
@@ -233,7 +268,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                     
                     if (ShowAnnotations)
                     {
-                        Draw.Dot(this, "FirstTrough" + CurrentBar, false, 0, firstTrough, DoubleBottomColor);
+                        // More visible marker for first trough
+                        Draw.Diamond(this, "FirstTrough" + CurrentBar, true, 0, firstTrough - (2 * TickSize), DoubleBottomColor);
+                        Draw.Text(this, "Trough1" + CurrentBar, true, "T1", 0, firstTrough - (6 * TickSize), 0, 
+                                 DoubleBottomColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
                     }
                 }
             }
@@ -261,23 +299,40 @@ namespace NinjaTrader.NinjaScript.Indicators
                         
                         if (ShowAnnotations)
                         {
-                            Draw.Line(this, "BottomLine" + CurrentBar, false, firstTroughBar, firstTrough, 0, secondTrough, DoubleBottomColor, DashStyleHelper.Solid, 2);
-                            Draw.Dot(this, "SecondTrough" + CurrentBar, false, 0, secondTrough, DoubleBottomColor);
+                            // Draw pattern with thicker, more visible lines
+                            Draw.Line(this, "BottomLine" + CurrentBar, true, firstTroughBar, firstTrough, 0, secondTrough, 
+                                     DoubleBottomColor, DashStyleHelper.Solid, LineThickness);
                             
-                            int middlePeakBar = firstTroughBar;
-                            for (int i = firstTroughBar; i <= secondTroughBar; i++)
+                            // More visible marker for second trough
+                            Draw.Diamond(this, "SecondTrough" + CurrentBar, true, 0, secondTrough - (2 * TickSize), DoubleBottomColor);
+                            Draw.Text(this, "Trough2" + CurrentBar, true, "T2", 0, secondTrough - (6 * TickSize), 0, 
+                                     DoubleBottomColor, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, null, null, 0);
+                            
+                            // Find the middle peak point
+                            int middlePeakBar = 0;
+                            for (int i = 0; i < (firstTroughBar - CurrentBar); i++)
                             {
-                                if (High[CurrentBar - i] >= middlePeak)
+                                if (Math.Abs(High[i] - middlePeak) < 0.001)
                                 {
                                     middlePeakBar = i;
                                     break;
                                 }
                             }
                             
-                            Draw.Line(this, "NecklineBottom" + CurrentBar, false, 
-                                     CurrentBar - middlePeakBar, middlePeak, 
+                            // Draw neckline with thick, dashed line
+                            Draw.Line(this, "NecklineBottom" + CurrentBar, true, 
+                                     middlePeakBar, middlePeak, 
                                      0, middlePeak, 
-                                     DoubleBottomColor, DashStyleHelper.Dash, 1);
+                                     DoubleBottomColor, DashStyleHelper.Dash, LineThickness);
+                                     
+                            // Label the neckline
+                            Draw.Text(this, "NeckBottom" + CurrentBar, true, "NECKLINE", Math.Max(middlePeakBar - 5, 0), middlePeak + (4 * TickSize), 0, 
+                                     DoubleBottomColor, new SimpleFont("Arial", 9), TextAlignment.Center, null, null, 0);
+                            
+                            // Draw entry arrow
+                            Draw.ArrowUp(this, "EntryBottom" + CurrentBar, true, 0, middlePeak - (10 * TickSize), DoubleBottomColor);
+                            Draw.Text(this, "EntryBuyText" + CurrentBar, true, "BUY", 0, middlePeak - (15 * TickSize), 0, 
+                                     Brushes.White, new SimpleFont("Arial", 10, FontWeight.Bold), TextAlignment.Center, DoubleBottomColor, null, 0);
                         }
                     }
                 }
@@ -325,7 +380,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
         
         [NinjaScriptProperty]
-        [Range(5, 20)]
+        [Range(5, 30)]
         [Display(Name = "Arrow Size", Description = "Size of the pattern arrows", Order = 3, GroupName = "Appearance")]
         public int ArrowSize
         {
@@ -333,8 +388,25 @@ namespace NinjaTrader.NinjaScript.Indicators
             set { arrowSize = value; }
         }
         
+        [NinjaScriptProperty]
+        [Display(Name = "Highlight Pattern", Description = "Highlight the pattern area with semi-transparent background", Order = 4, GroupName = "Appearance")]
+        public bool HighlightPattern
+        {
+            get { return highlightPattern; }
+            set { highlightPattern = value; }
+        }
+        
+        [NinjaScriptProperty]
+        [Range(1, 5)]
+        [Display(Name = "Line Thickness", Description = "Thickness of pattern lines", Order = 5, GroupName = "Appearance")]
+        public int LineThickness
+        {
+            get { return lineThickness; }
+            set { lineThickness = value; }
+        }
+        
         [XmlIgnore]
-        [Display(Name = "Double Top Color", Description = "Color for double top patterns", Order = 4, GroupName = "Appearance")]
+        [Display(Name = "Double Top Color", Description = "Color for double top patterns", Order = 6, GroupName = "Appearance")]
         public Brush DoubleTopColor { get; set; }
         
         [Browsable(false)]
@@ -345,7 +417,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
         
         [XmlIgnore]
-        [Display(Name = "Double Bottom Color", Description = "Color for double bottom patterns", Order = 5, GroupName = "Appearance")]
+        [Display(Name = "Double Bottom Color", Description = "Color for double bottom patterns", Order = 7, GroupName = "Appearance")]
         public Brush DoubleBottomColor { get; set; }
         
         [Browsable(false)]
