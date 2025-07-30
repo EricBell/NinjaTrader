@@ -370,11 +370,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void DrawDoubleTopRectangle()
         {
-            // FIXED: Properly limit rectangle width to RectangleWidth
+            // Calculate the distance in bars between first peak and current bar
+            int firstPeakOffset = CurrentBar - firstPeakBar;
+            int secondPeakOffset = CurrentBar - secondPeakBar;
+            
+            // Use the greater of the two offsets (the earlier pattern point)
+            int patternStartOffset = Math.Max(firstPeakOffset, secondPeakOffset);
+            
+            // Limit to a reasonable number of bars (like 30) to avoid excessive width
+            int startOffset = Math.Min(patternStartOffset, 30);
+            
             Draw.Rectangle(this, "TopRect" + CurrentBar, true, 
-                         Math.Max(0, CurrentBar - RectangleWidth), middleTrough - (0.5 * TickSize), 
-                         0, Math.Max(firstPeak, secondPeak) + (TickSize), 
-                         DoubleTopColor, Brushes.Transparent, 10);
+                        startOffset, middleTrough - (0.5 * TickSize), 
+                        0, Math.Max(firstPeak, secondPeak) + (TickSize), 
+                        DoubleTopColor, Brushes.Transparent, 10);
         }
 
         private void DrawDoubleBottomPattern()
@@ -439,11 +448,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void DrawDoubleBottomRectangle()
         {
-            // FIXED: Properly limit rectangle width to RectangleWidth
+            // Calculate the distance in bars between first trough and current bar
+            int firstTroughOffset = CurrentBar - firstTroughBar;
+            int secondTroughOffset = CurrentBar - secondTroughBar;
+            
+            // Use the greater of the two offsets (the earlier pattern point)
+            int patternStartOffset = Math.Max(firstTroughOffset, secondTroughOffset);
+            
+            // Limit to a reasonable number of bars (like 30) to avoid excessive width
+            int startOffset = Math.Min(patternStartOffset, 30);
+            
             Draw.Rectangle(this, "BottomRect" + CurrentBar, true, 
-                          Math.Max(0, CurrentBar - RectangleWidth), Math.Min(firstTrough, secondTrough) - (TickSize), 
-                          0, middlePeak + (0.5 * TickSize), 
-                          DoubleBottomColor, Brushes.Transparent, 10);
+                        startOffset, Math.Min(firstTrough, secondTrough) - (TickSize), 
+                        0, middlePeak + (0.5 * TickSize), 
+                        DoubleBottomColor, Brushes.Transparent, 10);
         }
         
         #region Properties
