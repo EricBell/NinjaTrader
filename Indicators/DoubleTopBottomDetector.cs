@@ -107,8 +107,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (ShowAnnotations)
                 {
                     // Larger, more visible text with background
-                    Draw.Text(this, "TopText" + CurrentBar, true, "DOUBLE TOP", 0, High[0] + (10 * TickSize), 0, 
-                             Brushes.White, new SimpleFont("Arial", 12, FontWeight.Bold), TextAlignment.Center, DoubleTopColor, Brushes.Red, 80);
+                   Draw.Text(this, "TopText" + CurrentBar, true, "DOUBLE TOP", 0, High[0] + (10 * TickSize), 0, 
+                    Brushes.White, new SimpleFont("Arial", 12), TextAlignment.Center, DoubleTopColor, Brushes.Red, 80);
                              
                     // Draw a rectangle highlighting the pattern area
                     if (HighlightPattern)
@@ -135,8 +135,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (ShowAnnotations)
                 {
                     // Larger, more visible text with background
-                    Draw.Text(this, "BottomText" + CurrentBar, true, "DOUBLE BOTTOM", 0, Low[0] - (10 * TickSize), 0, 
-                             Brushes.White, new SimpleFont("Arial", 12, FontWeight.Bold), TextAlignment.Center, DoubleBottomColor, Brushes.Green, 80);
+                   Draw.Text(this, "BottomText" + CurrentBar, true, "DOUBLE BOTTOM", 0, Low[0] + (10 * TickSize), 0, 
+         				Brushes.White, new SimpleFont("Arial", 12), TextAlignment.Center, DoubleTopColor, Brushes.Red, 80);
                              
                     // Draw a rectangle highlighting the pattern area
                     if (HighlightPattern)
